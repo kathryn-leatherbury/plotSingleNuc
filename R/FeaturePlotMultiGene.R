@@ -39,17 +39,18 @@
 #' @importFrom Seurat Idents Reductions Embeddings DefaultAssay NoAxes
 #' @importFrom ggplot2 ggplot geom_point coord_equal theme_minimal theme element_blank
 #' @importFrom ggplot2 element_text margin aes_string labs
-#' #' @examples
+#' @examples
 #' \dontrun{
-#'   FeaturePlot_multiGene(
-#'   object = hypo,
-#'   reduction = "umap.wnn",
-#'   genes = c("csf1r", "LOC101479120", "cga", "fabp7", "myrf", 'pitx2'),
-#'   gene.ref.table = homologs,
-#'   convert.names = T,
-#'   label = TRUE,
-#'   repel = TRUE,
-#'   legend.ncols = 2)
+#'   FeaturePlotMultiGene(
+#'     object = hypo,
+#'     reduction = "umap.wnn",
+#'     genes = c("csf1r", "LOC101479120", "cga", "fabp7", "myrf", "pitx2"),
+#'     gene.ref.table = homologs,
+#'     convert.names = TRUE,
+#'     label = TRUE,
+#'     repel = TRUE,
+#'     legend.ncols = 2
+#'   )
 #' }
 FeaturePlotMultiGene <- function(
     object,
@@ -433,8 +434,12 @@ FeaturePlotMultiGene <- function(
           legend.box.spacing = grid::unit(0, "pt"),
           legend.spacing.y   = grid::unit(0, "pt"),
           plot.margin        = grid::unit(c(0, 0, 0, 0), "pt")
+        ) +
+        ggplot2::guides( # ensure only colour legend present
+          size = "none", alpha = "none", shape = "none", fill = "none", linetype = "none"
         )
-      cowplot::get_legend(dummy)
+      leg <- suppressWarnings(cowplot::get_legend(dummy))
+      leg
     }
     legs <- lapply(seq_along(genes_resolved), build_leg)
     tiles <- lapply(legs, function(g) cowplot::ggdraw(g) +

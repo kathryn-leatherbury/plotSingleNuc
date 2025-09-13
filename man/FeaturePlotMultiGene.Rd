@@ -86,3 +86,17 @@ sequential colored layers with separate color scales (via ggnewscale).
 Optionally maps mixed input symbols using a gene reference table, supports
 shared or per-gene legends, and can place labels (with or without repel).
 }
+\examples{
+\dontrun{
+  FeaturePlotMultiGene(
+    object = hypo,
+    reduction = "umap.wnn",
+    genes = c("csf1r", "LOC101479120", "cga", "fabp7", "myrf", "pitx2"),
+    gene.ref.table = homologs,
+    convert.names = TRUE,
+    label = TRUE,
+    repel = TRUE,
+    legend.ncols = 2
+  )
+}
+}
