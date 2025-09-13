@@ -1,0 +1,25 @@
+Package: customPlotHelpers
+Title: Custom Plotting Functions for Seurat/Signac Workflows
+Version: 0.0.0.9000
+Authors@R: 
+    person("kathryn-leatherbury", , , "kleatherbury3@gatech.edu", role = c("aut", "cre"))
+Description: This function utilizes FeaturePlot_scCustom +
+    DotPlot_scCustom utilities and related helpers from
+    samuel-marsh/scCustomize.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Suggests: 
+    cowplot,
+    ggnewscale,
+    ggplotify,
+    ggrepel,
+    scCustomize,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Imports: 
+    ggplot2,
+    patchwork,
+    scales,
+    Seurat
