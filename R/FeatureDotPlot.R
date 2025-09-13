@@ -132,7 +132,7 @@ FeatureDotPlot <- function(
 
     # ---- Dot plot ----
     b <- scCustomize::DotPlot_scCustom(
-      object      = object,
+      seurat_object = object,
       features    = feat_vec,
       dot.scale   = 5.5,
       col.min     = 0.05,
