@@ -23,3 +23,5 @@ Imports:
     patchwork,
     scales,
     Seurat
+URL: https://github.com/kathryn-leatherbury/customPlotHelpers
+BugReports: https://github.com/kathryn-leatherbury/customPlotHelpers/issues
