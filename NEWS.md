@@ -1,3 +1,3 @@
-# plotSingleNuc (development version)
+# plotSingleNuc 0.0.1
 
 * Initial CRAN submission.
