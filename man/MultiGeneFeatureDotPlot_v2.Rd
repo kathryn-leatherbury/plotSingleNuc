@@ -4,7 +4,7 @@
 \alias{MultiGeneFeatureDotPlot_v2}
 \title{Multi-gene UMAP(s) + DotPlot composite for Seurat objects}
 \usage{
-MultiGeneFeatureDotPlot_v2(
+MultiGeneFeatureDotPlot(
   object,
   reduction = "umap",
   genes = NULL,
