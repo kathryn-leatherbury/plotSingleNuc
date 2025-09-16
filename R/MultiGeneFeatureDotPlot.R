@@ -50,7 +50,7 @@
 #' @importFrom stats setNames
 #' @importFrom rlang .data
 #' @export
-MultiGeneFeatureDotPlot_v2 <- function(
+MultiGeneFeatureDotPlot <- function(
     object,
     reduction          = "umap",
     genes              = NULL,          # mz or human symbols (mixed ok)
