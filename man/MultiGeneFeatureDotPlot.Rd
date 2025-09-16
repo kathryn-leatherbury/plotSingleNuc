@@ -28,13 +28,16 @@ MultiGeneFeatureDotPlot(
   plot.subtitle = NULL,
   split.by = NULL,
   split.umaps = FALSE,
-  umap.ncols = 2
+  flip.axes = FALSE,
+  umap.ncols = 3,
+  plot.heights = NULL,
+  plot.widths = NULL
 )
 }
 \arguments{
 \item{object}{Seurat object.}
 
-\item{reduction}{Character. Embedding to use (e.g., \code{"umap"}, \code{"umap.wnn"}).}
+\item{reduction}{Character. Embedding to use (e.g., "umap", "umap.wnn").}
 
 \item{genes}{Character vector of genes (mzebra or human; mixed allowed).}
 
@@ -42,18 +45,15 @@ MultiGeneFeatureDotPlot(
 
 \item{max.expression}{Optional numeric upper cap for color scales.}
 
-\item{scale.legend}{Logical. If \code{TRUE}, force all genes to share the same
-color limits; otherwise scale per gene.}
+\item{scale.legend}{Logical. If TRUE, force all genes to share the same limits.}
 
-\item{scale.legend.max}{Logical. With \code{scale.legend=TRUE}, use the max of
-per-gene 95th percentiles instead of min of 99th percentiles.}
+\item{scale.legend.max}{Logical. With scale.legend=TRUE, use max of per-gene 95th pct.}
 
 \item{pt.size}{Numeric point size for UMAP.}
 
 \item{alpha}{Numeric point alpha for UMAP.}
 
-\item{group.by}{Column name in \code{object@meta.data} (or vector/factor) used
-for cluster labels and DotPlot grouping. If \code{NULL}, defaults to \code{Idents}.}
+\item{group.by}{Column in meta.data (or vector/factor) for labels/DotPlot grouping.}
 
 \item{label}{Logical. Draw cluster labels on UMAP(s).}
 
@@ -61,26 +61,32 @@ for cluster labels and DotPlot grouping. If \code{NULL}, defaults to \code{Ident
 
 \item{gene.ref.table}{Optional data.frame for homolog mapping.}
 
-\item{gene.ref.col}{Column in \code{gene.ref.table} with mzebra IDs (default).}
+\item{gene.ref.col}{Column in gene.ref.table with mzebra IDs.}
 
 \item{new.name.col}{Column with human homolog names.}
 
 \item{secondary.ref.col}{Logical column indicating true homolog rows.}
 
-\item{convert.names}{Logical. If \code{TRUE}, show human homologs in legends/x-axis.}
+\item{convert.names}{Logical. If TRUE, show human homologs in legends/x-axis.}
 
-\item{assay}{Assay to use. Defaults to \code{Seurat::DefaultAssay(object)}.}
+\item{assay}{Assay to use. Defaults to Seurat::DefaultAssay(object).}
 
-\item{legend.ncols}{Optional integer. If set (and \code{split.umaps=FALSE}),
+\item{legend.ncols}{Optional integer. If set (and split.umaps=FALSE),
 renders a separate multi-column legend panel next to the UMAP.}
 
 \item{plot.title, plot.subtitle}{Optional title/subtitle for UMAP.}
 
 \item{split.by}{Optional column name for DotPlot splitting.}
 
-\item{split.umaps}{Logical. If \code{TRUE}, draw one UMAP per gene.}
+\item{split.umaps}{Logical. If TRUE, draw one UMAP per gene.}
 
-\item{umap.ncols}{Integer. Number of columns for the per-gene UMAP grid.}
+\item{flip.axes}{Logical; if TRUE, DotPlot rotated & stacked under UMAP(s).}
+
+\item{umap.ncols}{Integer. Columns for per-gene UMAP grid (when split.umaps=TRUE).}
+
+\item{plot.heights}{Numeric length-2 for stacked layout (UMAPs, DotPlot).}
+
+\item{plot.widths}{Numeric length-2 for side-by-side layout (UMAPs, DotPlot).}
 }
 \value{
 A patchwork object combining UMAP (single or grid) and a DotPlot.
@@ -102,4 +108,5 @@ MultiGeneFeatureDotPlot(
   split.umaps = TRUE, umap.ncols = 3
 )
 }
+
 }

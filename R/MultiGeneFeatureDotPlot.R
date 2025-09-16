@@ -6,34 +6,35 @@
 #' matched to assay features directly or via a homolog mapping table.
 #'
 #' @param object Seurat object.
-#' @param reduction Character. Embedding to use (e.g., `"umap"`, `"umap.wnn"`).
+#' @param reduction Character. Embedding to use (e.g., "umap", "umap.wnn").
 #' @param genes Character vector of genes (mzebra or human; mixed allowed).
 #' @param na.cutoff Numeric. Values ≤ this are treated as “off” for plotting.
 #' @param max.expression Optional numeric upper cap for color scales.
-#' @param scale.legend Logical. If `TRUE`, force all genes to share the same
-#'   color limits; otherwise scale per gene.
-#' @param scale.legend.max Logical. With `scale.legend=TRUE`, use the max of
-#'   per-gene 95th percentiles instead of min of 99th percentiles.
+#' @param scale.legend Logical. If TRUE, force all genes to share the same limits.
+#' @param scale.legend.max Logical. With scale.legend=TRUE, use max of per-gene 95th pct.
 #' @param pt.size Numeric point size for UMAP.
 #' @param alpha Numeric point alpha for UMAP.
-#' @param group.by Column name in `object@meta.data` (or vector/factor) used
-#'   for cluster labels and DotPlot grouping. If `NULL`, defaults to `Idents`.
+#' @param group.by Column in meta.data (or vector/factor) for labels/DotPlot grouping.
 #' @param label Logical. Draw cluster labels on UMAP(s).
 #' @param repel Logical. Use ggrepel for labels (if available).
 #' @param gene.ref.table Optional data.frame for homolog mapping.
-#' @param gene.ref.col Column in `gene.ref.table` with mzebra IDs (default).
+#' @param gene.ref.col Column in gene.ref.table with mzebra IDs.
 #' @param new.name.col Column with human homolog names.
 #' @param secondary.ref.col Logical column indicating true homolog rows.
-#' @param convert.names Logical. If `TRUE`, show human homologs in legends/x-axis.
-#' @param assay Assay to use. Defaults to `Seurat::DefaultAssay(object)`.
-#' @param legend.ncols Optional integer. If set (and `split.umaps=FALSE`),
+#' @param convert.names Logical. If TRUE, show human homologs in legends/x-axis.
+#' @param assay Assay to use. Defaults to Seurat::DefaultAssay(object).
+#' @param legend.ncols Optional integer. If set (and split.umaps=FALSE),
 #'   renders a separate multi-column legend panel next to the UMAP.
 #' @param plot.title,plot.subtitle Optional title/subtitle for UMAP.
 #' @param split.by Optional column name for DotPlot splitting.
-#' @param split.umaps Logical. If `TRUE`, draw one UMAP per gene.
-#' @param umap.ncols Integer. Number of columns for the per-gene UMAP grid.
+#' @param split.umaps Logical. If TRUE, draw one UMAP per gene.
+#' @param umap.ncols Integer. Columns for per-gene UMAP grid (when split.umaps=TRUE).
+#' @param flip.axes Logical; if TRUE, DotPlot rotated & stacked under UMAP(s).
+#' @param plot.heights Numeric length-2 for stacked layout (UMAPs, DotPlot).
+#' @param plot.widths Numeric length-2 for side-by-side layout (UMAPs, DotPlot).
 #'
 #' @return A patchwork object combining UMAP (single or grid) and a DotPlot.
+#'
 #' @examples
 #' \dontrun{
 #' MultiGeneFeatureDotPlot(
@@ -45,20 +46,21 @@
 #'   split.umaps = TRUE, umap.ncols = 3
 #' )
 #' }
+#'
 #' @importFrom stats setNames
 #' @importFrom rlang .data
 #' @export
 MultiGeneFeatureDotPlot <- function(
     object,
     reduction          = "umap",
-    genes              = NULL,
+    genes              = NULL,          # mz or human symbols (mixed ok)
     na.cutoff          = 0.5,
     max.expression     = NULL,
     scale.legend       = FALSE,
     scale.legend.max   = FALSE,
     pt.size            = 0.5,
     alpha              = 0.5,
-    group.by           = NULL,
+    group.by           = NULL,          # default -> Idents(object)
     label              = TRUE,
     repel              = FALSE,
     gene.ref.table     = NULL,
@@ -72,10 +74,12 @@ MultiGeneFeatureDotPlot <- function(
     plot.subtitle      = NULL,
     split.by           = NULL,
     split.umaps        = FALSE,
-    umap.ncols         = 2
+    flip.axes          = FALSE,
+    umap.ncols         = 3,
+    plot.heights       = NULL,
+    plot.widths        = NULL
 ){
   .build <- function(){
-    
     ## helpers
     stop_if <- function(cond, msg) if (isTRUE(cond)) stop(msg, call. = FALSE)
     to_bool <- function(x){
@@ -133,13 +137,11 @@ MultiGeneFeatureDotPlot <- function(
               "`gene.ref.col` and/or `new.name.col` not found in `gene.ref.table`.")
       stop_if(!secondary.ref.col %in% names(gene.ref.table),
               paste0("`secondary.ref.col` ('", secondary.ref.col, "') not found in `gene.ref.table`."))
-      
       g_vec <- as.character(gene.ref.table[[gene.ref.col]])
       h_vec <- as.character(gene.ref.table[[new.name.col]])
       g_lc  <- tolower(g_vec)
       h_lc  <- tolower(h_vec)
       tmask <- to_bool(gene.ref.table[[secondary.ref.col]])
-      
       map_one <- function(sym){
         s <- tolower(sym)
         hit_g <- which(g_lc == s)
@@ -208,12 +210,10 @@ MultiGeneFeatureDotPlot <- function(
       }
       lo_use <- lower.limit
       if (shared_upper <= lo_use) shared_upper <- lo_use + 1e-8
-      
       limits_for_scale <- c(lo_use, shared_upper)
       brks_common <- three_ticks_strict(lo_use, shared_upper)
-      
-      lims_list <- stats::setNames(replicate(length(genes_resolved), limits_for_scale, simplify = FALSE), genes_resolved)
-      brks_list <- stats::setNames(replicate(length(genes_resolved), brks_common,  simplify = FALSE), genes_resolved)
+      lims_list <- setNames(replicate(length(genes_resolved), limits_for_scale, simplify = FALSE), genes_resolved)
+      brks_list <- setNames(replicate(length(genes_resolved), brks_common,  simplify = FALSE), genes_resolved)
     } else {
       lims_list <- lapply(seq_along(genes_resolved), function(i){
         lo <- lower.limit
@@ -256,8 +256,7 @@ MultiGeneFeatureDotPlot <- function(
     ## base UMAP background (re-used)
     p_base <- ggplot2::ggplot() +
       ggplot2::geom_point(
-        data = df,
-        mapping = ggplot2::aes(.data[[xlab]], .data[[ylab]]),
+        data = df, ggplot2::aes_string(x = xlab, y = ylab),
         color = na_color, size = pt.size_bckgr
       ) +
       ggplot2::coord_equal() +
@@ -271,7 +270,7 @@ MultiGeneFeatureDotPlot <- function(
       ) +
       Seurat::NoAxes()
     
-    ## cluster labels (compute once)
+    ## cluster labels (compute once; added to each panel as needed)
     labs <- NULL
     if (isTRUE(label)) {
       if (is.null(group.by)) {
@@ -298,6 +297,7 @@ MultiGeneFeatureDotPlot <- function(
     
     ## ----- BUILD UMAP(S) -----
     if (isTRUE(split.umaps)) {
+      # One UMAP per gene, arranged in umap.ncols columns
       umap_list <- lapply(seq_along(genes_resolved), function(i){
         g   <- genes_resolved[i]
         pal <- pals[[ ((i-1) %% length(pals)) + 1 ]]
@@ -307,7 +307,7 @@ MultiGeneFeatureDotPlot <- function(
         p_i <- p_base +
           ggplot2::geom_point(
             data = df[df[[g]] > lower.limit & is.finite(df[[g]]), , drop = FALSE],
-            mapping = ggplot2::aes(.data[[xlab]], .data[[ylab]], color = .data[[g]]),
+            ggplot2::aes_string(x = xlab, y = ylab, color = g),
             size = pt.size, alpha = alpha
           ) +
           ggplot2::scale_color_gradientn(
@@ -333,7 +333,7 @@ MultiGeneFeatureDotPlot <- function(
           if (isTRUE(repel) && requireNamespace("ggrepel", quietly = TRUE)) {
             p_i <- p_i + ggrepel::geom_text_repel(
               data = medoids,
-              mapping = ggplot2::aes(.data[["x"]], .data[["y"]], label = .data[["label"]]),
+              ggplot2::aes(x = .data$x, y = .data$y, label = .data$label),
               size = 3.8, fontface = "bold", color = "black",
               box.padding = 0.5, point.padding = 0.3,
               segment.color = "grey50", max.overlaps = Inf
@@ -341,7 +341,7 @@ MultiGeneFeatureDotPlot <- function(
           } else {
             p_i <- p_i + ggplot2::geom_text(
               data = medoids,
-              mapping = ggplot2::aes(.data[["x"]], .data[["y"]], label = .data[["label"]]),
+              ggplot2::aes(x = .data$x, y = .data$y, label = .data$label),
               size = 3.8, fontface = "bold", color = "black"
             )
           }
@@ -350,7 +350,7 @@ MultiGeneFeatureDotPlot <- function(
       })
       p_umap <- patchwork::wrap_plots(umap_list, ncol = umap.ncols)
     } else {
-      ## original composite overlay with ordering
+      # Original single composite UMAP (multi-gene overlay)
       order_across_genes <- TRUE
       n_order_slices     <- 5
       df_list <- lapply(genes_resolved, function(g){
@@ -363,25 +363,20 @@ MultiGeneFeatureDotPlot <- function(
       names(df_list) <- genes_resolved
       
       p <- p_base
-      cuts <- seq(0, 1, length.out = max(2, n_order_slices) + 1)
-      for (s in seq_len(length(cuts) - 1)) {
+      if (!order_across_genes) {
         for (i in seq_along(genes_resolved)) {
+          if (i > 1) p <- p + ggnewscale::new_scale_color()
           g   <- genes_resolved[i]
           dat <- df_list[[g]]
           if (!nrow(dat)) next
-          slice <- dat[dat$.__pct__ > cuts[s] & dat$.__pct__ <= cuts[s+1], , drop = FALSE]
-          if (!nrow(slice)) next
-          if (s > 1 || i > 1) p <- p + ggnewscale::new_scale_color()
           pal <- pals[[ ((i-1) %% length(pals)) + 1 ]]
           lo <- lims_list[[g]][1]; hi <- lims_list[[g]][2]
-          legend_on <- (s == (length(cuts) - 1))
           pos_seq <- seq(lo, hi, length.out = length(pal))
           vals    <- scales::rescale(pos_seq, to = c(0,1), from = c(lo, hi))
           p <- p +
             ggplot2::geom_point(
-              data = slice,
-              mapping = ggplot2::aes(.data[[xlab]], .data[[ylab]], color = .data[[g]]),
-              size = pt.size, alpha = alpha, show.legend = legend_on
+              data = dat, ggplot2::aes_string(x = xlab, y = ylab, color = g),
+              size = pt.size, alpha = alpha
             ) +
             ggplot2::scale_color_gradientn(
               name    = legend_labels[i],
@@ -392,17 +387,57 @@ MultiGeneFeatureDotPlot <- function(
               labels  = lab_num,
               oob     = scales::squish,
               na.value = na_color,
-              guide   = if (legend_on) ggplot2::guide_colourbar(
+              guide   = ggplot2::guide_colourbar(
                 nbin = 100,
                 barheight = grid::unit(75, "pt"),
                 barwidth  = grid::unit(25, "pt"),
                 title.theme = ggplot2::element_text(face = "bold", size = legend_title_size),
                 label.theme = ggplot2::element_text(size = legend_label_size)
-              ) else "none"
+              )
             )
+        }
+      } else {
+        cuts <- seq(0, 1, length.out = max(2, n_order_slices) + 1)
+        for (s in seq_len(length(cuts) - 1)) {
+          for (i in seq_along(genes_resolved)) {
+            g   <- genes_resolved[i]
+            dat <- df_list[[g]]
+            if (!nrow(dat)) next
+            slice <- dat[dat$.__pct__ > cuts[s] & dat$.__pct__ <= cuts[s+1], , drop = FALSE]
+            if (!nrow(slice)) next
+            if (s > 1 || i > 1) p <- p + ggnewscale::new_scale_color()
+            pal <- pals[[ ((i-1) %% length(pals)) + 1 ]]
+            lo <- lims_list[[g]][1]; hi <- lims_list[[g]][2]
+            legend_on <- (s == (length(cuts) - 1))
+            pos_seq <- seq(lo, hi, length.out = length(pal))
+            vals    <- scales::rescale(pos_seq, to = c(0,1), from = c(lo, hi))
+            p <- p +
+              ggplot2::geom_point(
+                data = slice, ggplot2::aes_string(x = xlab, y = ylab, color = g),
+                size = pt.size, alpha = alpha, show.legend = legend_on
+              ) +
+              ggplot2::scale_color_gradientn(
+                name    = legend_labels[i],
+                colours = pal,
+                values  = vals,
+                limits  = c(lo, hi),
+                breaks  = brks_list[[g]],
+                labels  = lab_num,
+                oob     = scales::squish,
+                na.value = na_color,
+                guide   = if (legend_on) ggplot2::guide_colourbar(
+                  nbin = 100,
+                  barheight = grid::unit(75, "pt"),
+                  barwidth  = grid::unit(25, "pt"),
+                  title.theme = ggplot2::element_text(face = "bold", size = legend_title_size),
+                  label.theme = ggplot2::element_text(size = legend_label_size)
+                ) else "none"
+              )
+          }
         }
       }
       
+      # optional legend panel (only for non-split mode)
       if (!is.null(legend.ncols)) {
         need_pkgs(c("cowplot","ggplotify"))
         build_leg <- function(i){
@@ -411,7 +446,8 @@ MultiGeneFeatureDotPlot <- function(
           lo <- lims_list[[g]][1]; hi <- lims_list[[g]][2]
           pos_seq <- seq(lo, hi, length.out = length(pal))
           vals    <- scales::rescale(pos_seq, to = c(0,1), from = c(lo, hi))
-          dummy <- ggplot2::ggplot(data.frame(x=0,y=0,z=0), ggplot2::aes(.data[["x"]], .data[["y"]], color = .data[["z"]])) +
+          dummy <- ggplot2::ggplot(data.frame(x=0,y=0,z=0),
+                                   ggplot2::aes(.data$x, .data$y, color = .data$z)) +
             ggplot2::geom_point() +
             ggplot2::scale_color_gradientn(
               name    = legend_labels[i],
@@ -473,19 +509,29 @@ MultiGeneFeatureDotPlot <- function(
       colors_use    = pink_palette,
       assay         = assay,
       group.by      = group.by,
-      split.by      = split.by
+      split.by      = split.by,
+      flip_axes     = flip.axes
     ) +
       ggplot2::scale_x_discrete(limits = features_dp,
                                 labels = unname(lab_map[features_dp])) +
       ggplot2::labs(x = NULL) +
       ggplot2::theme(
-        plot.margin = ggplot2::margin(t = 0, r = 50, b = 20, l = 50, unit = "pt"),
+        plot.margin = ggplot2::margin(t = 10, r = 10, b = 10, l = 10, unit = "pt"),
         axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, vjust = 1, size = 9),
         axis.text.y = ggplot2::element_text(size = 9)
       )
     
     ## ---------- final layout ----------
-    patchwork::wrap_plots(p_umap, b, ncol = 2, widths = c(3, 1))
+    if (isTRUE(flip.axes)) {
+      b <- b + Seurat::RotatedAxis()
+      if (is.null(plot.heights)) plot.heights <- c(4, 1)  # stacked defaults
+      c <- patchwork::wrap_plots(p_umap, b, ncol = 1, heights = plot.heights)
+    } else {
+      if (is.null(plot.widths)) plot.widths <- c(4, 1)    # side-by-side defaults
+      c <- patchwork::wrap_plots(p_umap, b, ncol = 2, widths = plot.widths)
+    }
+    
+    return(c)
   }
   
   suppressMessages(suppressWarnings(.build()))
