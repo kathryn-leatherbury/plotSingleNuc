@@ -2,7 +2,7 @@
 % Please edit documentation in R/FeatureDotPlot.R
 \name{FeatureDotPlot}
 \alias{FeatureDotPlot}
-\title{FeaturePlot_scCustomize + DotPlot_scCustomize composite plot for Seurat objects}
+\title{FeaturePlot_scCustom + DotPlot_scCustom composite for Seurat objects}
 \usage{
 FeatureDotPlot(
   object,
@@ -20,72 +20,115 @@ FeatureDotPlot(
   featureplot.label.size = 3,
   dotplot.label.size = 10,
   bold.y.axis = FALSE,
-  colors = NULL
+  bold.x.axis = FALSE,
+  colors = NULL,
+  flip.axes = FALSE,
+  umaps.ncols = 2,
+  plot.heights = NULL,
+  plot.widths = NULL
 )
 }
 \arguments{
-\item{object}{Seurat object.}
+\item{object}{A \pkg{Seurat} object.}
 
-\item{features}{character vector of features.}
+\item{features}{Character vector of feature/gene names to plot.}
 
-\item{label}{logical; pass to FeaturePlot_scCustom for labeling.}
+\item{label}{Logical; add text labels on the UMAP feature plots.}
 
-\item{repel}{logical; repel labels in FeaturePlot_scCustom.}
+\item{repel}{Logical; use repelled labels for UMAP (if available).}
 
-\item{reduction}{character; reduction for FeaturePlot_scCustom, e.g. "umap.wnn".}
+\item{reduction}{Character; embedding/reduction name for UMAP plots
+(e.g., \code{"umap"}, \code{"umap.wnn"}). Default \code{"umap.wnn"}.}
 
-\item{pt.size}{numeric; point size for FeaturePlot_scCustom.}
+\item{pt.size}{Numeric; point size for UMAP feature plots.}
 
-\item{assay}{character; assay passed to DotPlot_scCustom. If NULL, uses DefaultAssay(object).}
+\item{assay}{Character; assay to use. If \code{NULL}, uses
+\code{Seurat::DefaultAssay(object)}.}
 
-\item{group.by}{character or factor; metadata/ident field used for DotPlot grouping.
-If NULL, defaults to Seurat::Idents(object).}
+\item{group.by}{Character scalar naming a column in \code{object@meta.data}
+(or a factor/character vector of length \code{ncol(object)}) used to group
+cells in the dot plot. If \code{NULL}, defaults to \code{Seurat::Idents(object)}.}
 
-\item{split.by}{character; optional metadata to split DotPlot.}
+\item{split.by}{Optional character scalar naming a metadata column to split
+the dot plot.}
 
-\item{legend}{logical; show legend on FeaturePlots.}
+\item{legend}{Logical; show color legend on the UMAP feature plots.}
 
-\item{umap_axes}{logical; show axes on FeaturePlots.}
+\item{umap_axes}{Logical; show axes on the UMAP feature plots.}
 
-\item{bold_umap_labels}{logical; try to bold UMAP text labels (best effort).}
+\item{bold_umap_labels}{Logical; attempt to bold the UMAP text labels
+when \code{label = TRUE}.}
 
-\item{featureplot.label.size}{numeric; label size for FeaturePlot_scCustom.}
+\item{featureplot.label.size}{Numeric; text size for UMAP labels.}
 
-\item{dotplot.label.size}{numeric; y-axis label size in the DotPlot panel.}
+\item{dotplot.label.size}{Numeric; axis text size for the dot plot.}
 
-\item{bold.y.axis}{logical; bolden y-axis labels in the DotPlot.}
+\item{bold.y.axis}{Logical; bold-face the y-axis tick labels in the dot plot.}
 
-\item{colors}{optional character vector of colors for FeaturePlot/DotPlot gradients;
-if NULL, a pink palette is used. Provide >= 3 colors for smoother gradients.}
+\item{bold.x.axis}{Logical; bold-face the x-axis tick labels in the dot plot.}
+
+\item{colors}{Character vector of colors for both UMAP and dot-plot gradients.
+If \code{NULL}, a pink palette is used. Provide \eqn{\ge} 3 colors for smooth
+gradients.}
+
+\item{flip.axes}{Logical; if \code{TRUE}, the dot plot is rotated (via
+\code{Seurat::RotatedAxis()}) and the layout is stacked vertically
+(UMAP panel on top, dot plot below). If \code{FALSE}, panels are side-by-side.}
+
+\item{umaps.ncols}{Integer; number of columns to arrange the UMAP feature
+plots panel. Default \code{2}.}
+
+\item{plot.heights}{Numeric vector of length 2; relative heights
+\code{c(UMAPs, DotPlot)} used when \code{flip.axes = TRUE} (stacked layout).
+If \code{NULL}, defaults to \code{c(4, 1)}.}
+
+\item{plot.widths}{Numeric vector of length 2; relative widths
+\code{c(UMAPs, DotPlot)} used when \code{flip.axes = FALSE}
+(side-by-side layout). If \code{NULL}, defaults to \code{c(4, 1)}.}
 }
 \value{
-A patchwork/ggplot object.
+A \pkg{patchwork} object combining the UMAP feature plots and the dot plot.
 }
 \description{
-Note: This function requires the \pkg{scCustomize} package at runtime.
-If it is not installed, an informative error is raised with installation instructions.
-For scCustomize see: https://github.com/samuel-marsh/scCustomize
-Marsh SE (2021). scCustomize: Custom Visualizations & Functions for Streamlined Analyses
-of Single Cell Sequencing. https://doi.org/10.5281/zenodo.5706430. RRID:SCR_024675.
+Builds a panel of one or more UMAP feature plots (via
+\code{scCustomize::FeaturePlot_scCustom}) next to a dot plot
+(\code{scCustomize::DotPlot_scCustom}). You can control the number of
+UMAP columns, flip/stack the layout, and style axis labels.
+}
+\details{
+Note: This function requires \pkg{scCustomize} at runtime.
+Install with: \code{remotes::install_github("samuel-marsh/scCustomize")}.
 }
 \examples{
 \dontrun{
-  p <- FeatureDotPlot(
-    object = hypo,
-    features = c('myrf','olig1','gpr17','spi1'),
-    label = TRUE,
-    repel = TRUE,
-    reduction = 'umap.wnn',
-    pt.size = 0.3,
-    legend = FALSE,
-    umap_axes = FALSE,
-    assay = 'SCT',
-    group.by = 'subclusters_2.1.1_new',
-    bold_umap_labels = TRUE,
-    dotplot.label.size = 8,
-    featureplot.label.size = 3,
-    bold.y.axis = TRUE
-  )
-  p
+p <- FeatureDotPlot(
+  object = hypo,
+  features = c("myrf","olig1","gpr17","spi1"),
+  reduction = "umap.wnn",
+  label = TRUE, repel = TRUE,
+  pt.size = 0.3,
+  assay = "SCT",
+  group.by = "subclusters_2.1.1_new",
+  legend = FALSE,
+  umap_axes = FALSE,
+  bold_umap_labels = TRUE,
+  dotplot.label.size = 8,
+  featureplot.label.size = 3,
+  bold.y.axis = TRUE,
+  bold.x.axis = FALSE,
+  umaps.ncols = 2,                 # arrange UMAPs in 2 columns
+  flip.axes = FALSE,               # side-by-side layout
+  plot.widths = c(4, 1)            # relative widths for side-by-side
+)
+p
+
+# stacked layout (UMAPs on top, dot plot below)
+p2 <- FeatureDotPlot(
+  object = hypo,
+  features = c("myrf","olig1","gpr17","spi1"),
+  flip.axes = TRUE,
+  plot.heights = c(3, 2)           # relative heights when stacked
+)
 }
+
 }

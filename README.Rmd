@@ -22,10 +22,11 @@ The goal of plotSingleNuc is to ...
 
 ## Installation
 
-You can install the development version of plotSingleNuc like so:
+You can install the development version of plotSingleNuc from [GitHub](https://github.com/) with:
 
 ``` r
-# FILL THIS IN! HOW CAN PEOPLE INSTALL YOUR DEV PACKAGE?
+# install.packages("pak")
+pak::pak("kathryn-leatherbury/plotSingleNuc")
 ```
 
 ## Example
