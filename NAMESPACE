@@ -2,7 +2,7 @@
 
 export(FeatureDotPlot)
 export(FeaturePlotMultiGene)
-export(MultiGeneFeatureDotPlot_v2)
+export(MultiGeneFeatureDotPlot)
 importFrom(Seurat,DefaultAssay)
 importFrom(Seurat,Embeddings)
 importFrom(Seurat,Idents)
