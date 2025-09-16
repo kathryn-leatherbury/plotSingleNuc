@@ -25,7 +25,7 @@
 #' @param assay Assay to use. Defaults to Seurat::DefaultAssay(object).
 #' @param legend.ncols Optional integer. If set (and split.umaps=FALSE),
 #'   renders a separate multi-column legend panel next to the UMAP.
-#' @param plot.title,plot.subtitle Optional title/subtitle for UMAP.
+#' @param plot.title Optional title/subtitle for UMAP.
 #' @param split.by Optional column name for DotPlot splitting.
 #' @param split.umaps Logical. If TRUE, draw one UMAP per gene.
 #' @param umap.ncols Integer. Columns for per-gene UMAP grid (when split.umaps=TRUE).
@@ -50,7 +50,7 @@
 #' @importFrom stats setNames
 #' @importFrom rlang .data
 #' @export
-MultiGeneFeatureDotPlot <- function(
+MultiGeneFeatureDotPlot_v2 <- function(
     object,
     reduction          = "umap",
     genes              = NULL,          # mz or human symbols (mixed ok)
@@ -71,7 +71,6 @@ MultiGeneFeatureDotPlot <- function(
     assay              = Seurat::DefaultAssay(object),
     legend.ncols       = NULL,
     plot.title         = NULL,
-    plot.subtitle      = NULL,
     split.by           = NULL,
     split.umaps        = FALSE,
     flip.axes          = FALSE,
@@ -80,7 +79,8 @@ MultiGeneFeatureDotPlot <- function(
     plot.widths        = NULL
 ){
   .build <- function(){
-    ## helpers
+    
+    ## --- helpers --------------------------------------------------------------
     stop_if <- function(cond, msg) if (isTRUE(cond)) stop(msg, call. = FALSE)
     to_bool <- function(x){
       if (is.logical(x)) return(x)
@@ -111,10 +111,9 @@ MultiGeneFeatureDotPlot <- function(
     }
     lab_num <- scales::label_number(accuracy = 0.1, trim = TRUE)
     
-    ## guards
+    ## --- guards ---------------------------------------------------------------
     stop_if(!inherits(object, "Seurat"), "`object` must be a Seurat object.")
-    base_needs <- c("ggplot2","ggnewscale","scales","grid","patchwork","scCustomize")
-    if (!is.null(legend.ncols)) base_needs <- c(base_needs, "cowplot", "ggplotify")
+    base_needs <- c("ggplot2","ggnewscale","scales","grid","patchwork","scCustomize","cowplot","ggplotify")
     need_pkgs(base_needs)
     if (isTRUE(repel)) need_pkgs("ggrepel")
     
@@ -130,18 +129,20 @@ MultiGeneFeatureDotPlot <- function(
     stop_if(!is.matrix(emb2) || ncol(emb2) < 2, "Reduction must have at least 2 dimensions.")
     xlab <- colnames(emb2)[1]; ylab <- colnames(emb2)[2]
     
-    ## resolve requested genes -> assay feature IDs
+    ## --- resolve requested genes -> assay features ----------------------------
     feats <- rownames(object[[assay]])
     if (!is.null(gene.ref.table) && !is.null(gene.ref.col) && !is.null(new.name.col)) {
       stop_if(!all(c(gene.ref.col, new.name.col) %in% names(gene.ref.table)),
               "`gene.ref.col` and/or `new.name.col` not found in `gene.ref.table`.")
       stop_if(!secondary.ref.col %in% names(gene.ref.table),
               paste0("`secondary.ref.col` ('", secondary.ref.col, "') not found in `gene.ref.table`."))
+      
       g_vec <- as.character(gene.ref.table[[gene.ref.col]])
       h_vec <- as.character(gene.ref.table[[new.name.col]])
       g_lc  <- tolower(g_vec)
       h_lc  <- tolower(h_vec)
       tmask <- to_bool(gene.ref.table[[secondary.ref.col]])
+      
       map_one <- function(sym){
         s <- tolower(sym)
         hit_g <- which(g_lc == s)
@@ -155,11 +156,9 @@ MultiGeneFeatureDotPlot <- function(
         return(NA_character_)
       }
       mapped <- vapply(genes, map_one, character(1))
-      if (anyNA(mapped)) {
-        stop("These gene(s) were not found in either '", gene.ref.col, "' or '", new.name.col, "': ",
-             paste(genes[is.na(mapped)], collapse = ", "),
-             call. = FALSE)
-      }
+      stop_if(anyNA(mapped),
+              paste0("Not found in ref table: ",
+                     paste(genes[is.na(mapped)], collapse = ", ")))
       genes_resolved <- mapped
     } else {
       genes_resolved <- genes
@@ -177,7 +176,7 @@ MultiGeneFeatureDotPlot <- function(
                    paste(genes_resolved[is.na(resolved)], collapse = ", ")))
     genes_resolved <- as.character(genes_resolved)
     
-    ## fetch data
+    ## --- fetch data -----------------------------------------------------------
     old_assay <- Seurat::DefaultAssay(object)
     on.exit(Seurat::DefaultAssay(object) <- old_assay, add = TRUE)
     Seurat::DefaultAssay(object) <- assay
@@ -186,16 +185,14 @@ MultiGeneFeatureDotPlot <- function(
     colnames(expr) <- genes_resolved
     df <- data.frame(as.data.frame(emb2), expr, check.names = FALSE)
     
-    ## constants
+    ## --- constants & scaling --------------------------------------------------
     legend_title_size <- 11
     legend_label_size <- 10
     pt.size_bckgr     <- pt.size
     lower.limit       <- if (na.cutoff > 0) na.cutoff else 0
     
-    ## cap per-gene at 99th pct
     for (g in genes_resolved) df[[g]] <- cap_top(df[[g]])
     
-    ## limits & breaks
     per_gene_q99 <- vapply(genes_resolved, function(g) finite_pos_q(df[[g]], 0.99), numeric(1))
     per_gene_q95 <- vapply(genes_resolved, function(g) finite_pos_q(df[[g]], 0.95), numeric(1))
     per_gene_max <- vapply(genes_resolved, function(g) finite_pos_max(df[[g]]), numeric(1))
@@ -226,7 +223,7 @@ MultiGeneFeatureDotPlot <- function(
       names(brks_list) <- genes_resolved
     }
     
-    ## palettes & legend labels
+    ## --- palettes & legend labels --------------------------------------------
     pals <- list(
       c("gray80","lightskyblue","dodgerblue3","dodgerblue4"),
       c("gray80","plum2","purple2","purple4"),
@@ -253,7 +250,7 @@ MultiGeneFeatureDotPlot <- function(
       toupper(as.character(lbl))
     }, character(1))
     
-    ## base UMAP background (re-used)
+    ## --- base UMAP background -------------------------------------------------
     p_base <- ggplot2::ggplot() +
       ggplot2::geom_point(
         data = df, ggplot2::aes_string(x = xlab, y = ylab),
@@ -270,7 +267,7 @@ MultiGeneFeatureDotPlot <- function(
       ) +
       Seurat::NoAxes()
     
-    ## cluster labels (compute once; added to each panel as needed)
+    ## --- cluster labels once --------------------------------------------------
     labs <- NULL
     if (isTRUE(label)) {
       if (is.null(group.by)) {
@@ -295,9 +292,9 @@ MultiGeneFeatureDotPlot <- function(
       data.frame(label = d$label[i], x = d[[xlab]][i], y = d[[ylab]][i])
     })) else NULL
     
-    ## ----- BUILD UMAP(S) -----
+    ## ==================== BUILD UMAP(S) =======================================
     if (isTRUE(split.umaps)) {
-      # One UMAP per gene, arranged in umap.ncols columns
+      # per-gene panel list
       umap_list <- lapply(seq_along(genes_resolved), function(i){
         g   <- genes_resolved[i]
         pal <- pals[[ ((i-1) %% length(pals)) + 1 ]]
@@ -333,7 +330,7 @@ MultiGeneFeatureDotPlot <- function(
           if (isTRUE(repel) && requireNamespace("ggrepel", quietly = TRUE)) {
             p_i <- p_i + ggrepel::geom_text_repel(
               data = medoids,
-              ggplot2::aes(x = .data$x, y = .data$y, label = .data$label),
+              ggplot2::aes(x = x, y = y, label = label),
               size = 3.8, fontface = "bold", color = "black",
               box.padding = 0.5, point.padding = 0.3,
               segment.color = "grey50", max.overlaps = Inf
@@ -341,16 +338,28 @@ MultiGeneFeatureDotPlot <- function(
           } else {
             p_i <- p_i + ggplot2::geom_text(
               data = medoids,
-              ggplot2::aes(x = .data$x, y = .data$y, label = .data$label),
+              ggplot2::aes(x = x, y = y, label = label),
               size = 3.8, fontface = "bold", color = "black"
             )
           }
         }
         p_i
       })
-      p_umap <- patchwork::wrap_plots(umap_list, ncol = umap.ncols)
+      
+      # turn the grid into a *ggplot* so ggplot2::labs() will work:
+      p_grid <- cowplot::plot_grid(plotlist = umap_list, ncol = umap.ncols, align = "hv")
+      p_umap <- ggplotify::as.ggplot(p_grid)
+      
+      # attach title/subtitle the SAME way as your original code
+      if (!is.null(plot.title)) {
+        p_umap <- p_umap +
+          ggplot2::labs(title = plot.title) +
+          ggplot2::theme(plot.margin = ggplot2::margin(0, 10, 0, 10, unit = "pt"),
+                         plot.title    = ggplot2::element_text(face = "bold", size = 15, hjust = 0, vjust = -2))
+      }
+      
     } else {
-      # Original single composite UMAP (multi-gene overlay)
+      # original single composite UMAP (overlay)
       order_across_genes <- TRUE
       n_order_slices     <- 5
       df_list <- lapply(genes_resolved, function(g){
@@ -437,17 +446,14 @@ MultiGeneFeatureDotPlot <- function(
         }
       }
       
-      # optional legend panel (only for non-split mode)
       if (!is.null(legend.ncols)) {
-        need_pkgs(c("cowplot","ggplotify"))
         build_leg <- function(i){
           g   <- genes_resolved[i]
           pal <- pals[[ ((i-1) %% length(pals)) + 1 ]]
           lo <- lims_list[[g]][1]; hi <- lims_list[[g]][2]
           pos_seq <- seq(lo, hi, length.out = length(pal))
           vals    <- scales::rescale(pos_seq, to = c(0,1), from = c(lo, hi))
-          dummy <- ggplot2::ggplot(data.frame(x=0,y=0,z=0),
-                                   ggplot2::aes(.data$x, .data$y, color = .data$z)) +
+          dummy <- ggplot2::ggplot(data.frame(x=0,y=0,z=0), ggplot2::aes(x,y,color=z)) +
             ggplot2::geom_point() +
             ggplot2::scale_color_gradientn(
               name    = legend_labels[i],
@@ -471,7 +477,7 @@ MultiGeneFeatureDotPlot <- function(
               legend.margin      = ggplot2::margin(0,0,0,0),
               legend.box.margin  = ggplot2::margin(0,0,0,0),
               legend.box.spacing = grid::unit(0, "pt"),
-              legend.spacing.y   = grid::unit(0, "pt"),
+              legend.spacing.y   = ggplot2::unit(0, "pt"),
               plot.margin        = grid::unit(c(0,0,0,0), "pt")
             )
           cowplot::get_legend(dummy)
@@ -487,14 +493,15 @@ MultiGeneFeatureDotPlot <- function(
         p <- ggplotify::as.ggplot(cowplot::plot_grid(p, legend_panel, ncol = 2, rel_widths = c(1, 0.28), align = "h"))
       }
       
-      if (!is.null(plot.title) || !is.null(plot.subtitle)) {
-        p <- p + ggplot2::labs(title = plot.title, subtitle = plot.subtitle) +
-          ggplot2::theme(plot.margin = ggplot2::margin(0, 10, 0, 10, unit = "pt"))
+      if (!is.null(plot.title)) {
+        p <- p + ggplot2::labs(title = plot.title) +
+          ggplot2::theme(plot.margin = ggplot2::margin(0, 10, 0, 10, unit = "pt"),
+                         plot.title    = ggplot2::element_text(face = "bold", size = 15, hjust = 0, vjust = -2))
       }
       p_umap <- p
     }
     
-    ## ---------- DotPlot ----------
+    ## ==================== DotPlot =============================================
     features_dp <- genes_resolved
     lab_map     <- stats::setNames(legend_labels, genes_resolved)
     pink_palette <- c("gray87","pink","palevioletred1","deeppink","deeppink3","deeppink4")
@@ -516,18 +523,18 @@ MultiGeneFeatureDotPlot <- function(
                                 labels = unname(lab_map[features_dp])) +
       ggplot2::labs(x = NULL) +
       ggplot2::theme(
-        plot.margin = ggplot2::margin(t = 10, r = 10, b = 10, l = 10, unit = "pt"),
+        plot.margin = ggplot2::margin(t = 10, r = 10, b = 15, l = 10, unit = "pt"),
         axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, vjust = 1, size = 9),
         axis.text.y = ggplot2::element_text(size = 9)
       )
     
-    ## ---------- final layout ----------
+    ## ==================== Final layout ========================================
     if (isTRUE(flip.axes)) {
-      b <- b + Seurat::RotatedAxis()
-      if (is.null(plot.heights)) plot.heights <- c(4, 1)  # stacked defaults
+      b <- b + RotatedAxis()
+      if (is.null(plot.heights)) plot.heights <- c(4, 1)
       c <- patchwork::wrap_plots(p_umap, b, ncol = 1, heights = plot.heights)
     } else {
-      if (is.null(plot.widths)) plot.widths <- c(4, 1)    # side-by-side defaults
+      if (is.null(plot.widths)) plot.widths <- c(4, 1)
       c <- patchwork::wrap_plots(p_umap, b, ncol = 2, widths = plot.widths)
     }
     
